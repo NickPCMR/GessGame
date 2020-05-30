@@ -2,6 +2,8 @@
 # Date: 5/26/2020
 # Description: Gess game
 
+import math
+
 class Gess:
     def __init__(self):
         """" initializes game: sets status, whose turn it is, and starting
@@ -28,28 +30,7 @@ class Gess:
             "q": 16,
             "r": 17,
             "s": 18,
-            "t": 19,
-            "0": 0,
-            "1": 1,
-            "2": 2,
-            "3": 3,
-            "4": 4,
-            "5": 5,
-            "6": 6,
-            "7": 7,
-            "8": 8,
-            "9": 9,
-            "10": 10,
-            "11": 11,
-            "12": 12,
-            "13": 13,
-            "14": 14,
-            "15": 15,
-            "16": 16,
-            "17": 17,
-            "18": 18,
-            "19": 19
-        }
+            "t": 19}
         self._status = 'UNFINISHED'
         self._turn = "X"
         self._board = [[" ", " ", " ", " ", " ", " ", " ", " ", " ", " ",
@@ -118,26 +99,126 @@ class Gess:
 
     def make_move(self, old_pos, new_pos):
         """ takes 2 coordinates as input and will make the move if it is
-        legal, calls  get_coordinates legal_move()"""
+        legal"""
+        # if the game ended return false
+        if self.get_game_state() != "UNFINISHED":
+            print("game is over")
+            return False
         coordinates = self.get_coordinates(old_pos,new_pos)
         # if coordinate was invalid return False
         if not coordinates:
             return False
-        print(coordinates)
+
         piece = self.get_piece(coordinates[0], coordinates[1])
-        print(piece)
+
+
         # if piece is invalid return false
         if not self.validate_piece(piece):
             return False
 
+        dist = self.measure_distance(coordinates)
 
-    def legal_move(self):
-        """ checks if proposed move is legal: coordinates inbounds, doesn't
-        break any rules, returns True/False"""
+        if not dist:
+            return False
+        valid = self.legal_move(piece,coordinates, dist)
 
-        # calculate possible moves from current piece
-        # if NW contains char,
-        pass
+        if not valid:
+            return False
+
+    @staticmethod
+    def measure_distance(coordinates):
+        """receives a list of coordinates and returns the distance between 2
+        points. Returns False if coordiantes are the same or if move is not
+        diagonal or straight"""
+        x1 = coordinates[0]
+        x2 = coordinates[2]
+        y1 = coordinates[1]
+        y2 = coordinates[3]
+
+        if x1 == x2 and y2 == y1:
+            print("can't move to current position")
+            return False
+        try:
+            distance = round(math.sqrt((x2 - x1)**2 + (y2 - y1)**2))
+            slope = abs((y2-y1)/(x2-x1))
+        except ZeroDivisionError:
+            slope = 0
+        if slope == 1.0:
+            distance = abs(x1-x2)
+
+        if slope not in (1.0,0):
+            print("impossible slope")
+            return False
+
+        return [distance, slope]
+
+    @staticmethod
+    def legal_move(piece, coordinates, distance):
+        """ receives a piece,coordinates and distance as arguments,
+        determines if a legal move can be made"""
+        x1 = coordinates[0]
+        x2 = coordinates[2]
+        y1 = coordinates[1]
+        y2 = coordinates[3]
+        slope = distance[1]
+        dist = distance[0]
+
+        # cannot travel  more than 3 spaces without center piece
+        if dist > 3 and piece[4] == " ":
+            print("too far")
+            return False
+
+        # illegal NW move
+        if piece[0] == " " and x2 < x1 and y2 < y1:
+            print("no NW token")
+            return False
+
+        # illegal N move
+        if piece[1] == " " and x2 == x1 and y2 < y1:
+            print("no N token")
+            return False
+
+        # illegal NE move
+        if piece[2] == " " and x2 > x1 and y2 < y1:
+            print("no NE token")
+            return False
+
+        # illegal W move
+        if piece[3] == " " and x2 < x1 and y1 == y2:
+            print("no W token")
+            return False
+
+        # illegal E move
+        if piece[5] == " " and x2 > x1 and y1 == y2:
+            print("no E token")
+            return False
+
+        # illegal SW move
+        if piece[6] == " " and x2 < x1 and y2 > y1:
+            print("no SE token")
+            return False
+
+        # illegal S move
+        if piece[7] == " " and x2 == x1 and y2 > y1:
+            print("no S token")
+            return False
+
+        # illegal SE move
+        if piece[8] == " " and x2 > x1 and y2 > y1:
+            print("no SE token")
+            return False
+
+
+
+
+
+
+
+        # use slope to determine if moving straight or diagonal
+        # if straight, use dif between Xs to determine direction to move
+        # if slope is 1, determine direction based off of x/y differences
+        return True
+
     def get_coordinates(self, old, new):
         """takes 2 input strings as coordinates and converts them to list
         indices for the board, returns a list of integers as x and y
@@ -164,7 +245,7 @@ class Gess:
         # if coordinates are not withing the 18x18 grid return False
         if y1 not in range(1,19) or y2 not in range(1,19) or x1 not in range(
                 1,19) or x2 not in range(1,19):
-            print("invalid coordinates")
+            print("out of range")
             return False
         return [x1,y1,x2,y2]
 
@@ -215,7 +296,15 @@ class Gess:
             return False
         return True
 
-g = Gess()
-g.display()
 
-g.make_move("i7", "g8")
+g = Gess()
+
+
+
+
+
+
+
+
+
+
