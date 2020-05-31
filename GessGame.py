@@ -32,7 +32,7 @@ class Gess:
             "s": 18,
             "t": 19}
         self._status = 'UNFINISHED'
-        self._turn = "X"
+        self._turn = "O"
         self._board = [[" ", " ", " ", " ", " ", " ", " ", " ", " ", " ",
                         " ",  " ", " ", " ", " ", " ", " ", " ", " ", " "],
                        [" ", " ", "X", " ", "X", " ", "X", "X", "X", "X",
@@ -84,6 +84,9 @@ class Gess:
                 else:
                     print(" " + self._board[i][y] + " " + "|", end="")
 
+    def set_board(self, board):
+        self._board = board
+
     def get_game_state(self):
         """returns the current status of the game"""
         return self._status
@@ -92,6 +95,16 @@ class Gess:
         """changes the current state of the game, options include UNFINISHED,
         BLACK_WON, WHITE_WON"""
         self._status = state
+
+    def get_turn(self):
+        return self._turn
+
+    def set_turn(self):
+        if self.get_turn() == "X":
+            self._turn = "O"
+
+        else:
+            self._turn = "X"
 
     def resign_game(self, player):
         """allows a player to resign, calls set_game_state()"""
@@ -102,7 +115,7 @@ class Gess:
         legal"""
 
 
-        # if the game ended return false
+        # if the game is over return false
         if self.get_game_state() != "UNFINISHED":
             print("game is over")
             return False
@@ -144,18 +157,34 @@ class Gess:
             if self.contains_stones(new_stones):
                 if coordinates[2] == next_pos[0] and coordinates[3] == next_pos[1]:
                     print("complete move")
+                    board_copy = [stone[:] for stone in self._board]
                     self.move_piece(piece,next_coord)
                     self.clear_footprint(coordinates)
                     self.clear_perimeter()
+
+                    if not self.check_win():
+                        self.set_board(board_copy)
+                        return False
+                    self.set_turn()
+                    return True
+
                 else:
                     print("overlapping footprint")
                     return False
             else:
                 if coordinates[2] == next_pos[0] and coordinates[3] == next_pos[1]:
                     print("complete move")
+                    board_copy = [stone[:] for stone in self._board]
                     self.move_piece(piece,next_coord)
                     self.clear_footprint(coordinates)
                     self.clear_perimeter()
+
+                    if not self.check_win():
+                        self.set_board(board_copy)
+                        return False
+                    self.set_turn()
+                    return True
+
                 else:
                     next_pos.extend([coordinates[2],coordinates[3]])
                     next_pos = self.get_next_pos(next_pos)
@@ -163,6 +192,65 @@ class Gess:
                     next_coord = self.get_coordinates(next_pos[0],next_pos[1])
                     unique_coords = self.compare_coordinates(old_coord,next_coord)
                     new_stones = self.get_stones(unique_coords)
+
+    def check_win(self, x=2, y=2,o_ring=False,x_ring=False):
+        """check the board to see if both players have a ring"""
+
+
+
+
+        piece = self.get_piece(x,y)
+
+        x_count = 0
+        o_count = 0
+        for stone in piece:
+            if stone == "X":
+                x_count += 1
+            if stone == "O":
+                o_count += 1
+
+        if x_count == 8 and piece[4] == " ":
+            x_ring = True
+
+        if o_count == 8 and piece[4] == " ":
+            o_ring = True
+
+
+        # base case, reach end of board or 2 rings are found
+
+
+        if (x_ring is True and o_ring is True) or (x == 17 and y == 17):
+            if x_ring is False and self.get_turn() == "X":
+                print("can't break X ring")
+                return False
+
+
+            if o_ring is False and self.get_turn() == "O":
+                print("can't break O ring")
+                return False
+
+
+            if x_ring is False and self.get_turn() == "O":
+                self.set_game_state("BLACK_WON")
+                print(self.get_game_state())
+                return True
+
+
+            if o_ring is False and self.get_turn() == "X":
+                self.set_game_state("WHITE_WON")
+                print(self.get_game_state())
+                return True
+
+            if x_ring is True and o_ring is True:
+                return True
+
+        if x == 17:
+            x = 2
+            y += 1
+        else:
+            x += 1
+
+        return self.check_win(x,y,o_ring,x_ring)
 
     def clear_perimeter(self):
         """erases any pieces moved over the edge of the board"""
@@ -377,14 +465,6 @@ class Gess:
             return False
 
 
-
-
-
-
-
-        # use slope to determine if moving straight or diagonal
-        # if straight, use dif between Xs to determine direction to move
-        # if slope is 1, determine direction based off of x/y differences
         return True
 
     def translate_coordinates(self, old, new):
@@ -434,8 +514,8 @@ class Gess:
 
         return piece
 
-    @staticmethod
-    def validate_piece(piece):
+
+    def validate_piece(self, piece):
         """validates selected piece (list of strings).
                 False Conditions:
                     all blanks
@@ -462,12 +542,34 @@ class Gess:
         if piece[4] != ' ' and blank_count == 8:
             print("single center piece")
             return False
+
+        if x_count > 0 and self.get_turn() == "O":
+            print("Not your turn1")
+            return False
+
+        if o_count > 0 and self.get_turn() == "X":
+            print("Not your turn2")
+            return False
+
         return True
 
-
-g = Gess()
-g.make_move("j3","h3")
-g.display()
+# g = Gess()
+#
+#
+# g.make_move("l6", "l9")
+# g.display()
+# g.make_move("k14","n14")
+# g.display()
+# g.make_move("l9","l12")
+# g.display()
+# g.make_move("n14","o14")
+# g.make_move("l12","l15")
+# g.make_move("o14","p14")
+# g.make_move("l15","l16")
+# g.make_move("p15","q15")
+#
+#
+# g.display()
 
 
 
