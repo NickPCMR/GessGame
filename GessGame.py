@@ -106,9 +106,12 @@ class GessGame:
         else:
             self._turn = "X"
 
-    def resign_game(self, player):
+    def resign_game(self):
         """allows a player to resign, calls set_game_state()"""
-        pass
+        if self.get_turn() == "X":
+            self.set_game_state("BLACK_WON")
+        else:
+            self.set_game_state("WHITE_WON")
 
     def make_move(self, old_pos, new_pos):
         """ takes 2 coordinates as input and will make the move if it is
