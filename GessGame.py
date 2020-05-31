@@ -100,30 +100,198 @@ class Gess:
     def make_move(self, old_pos, new_pos):
         """ takes 2 coordinates as input and will make the move if it is
         legal"""
+
+
         # if the game ended return false
         if self.get_game_state() != "UNFINISHED":
             print("game is over")
             return False
-        coordinates = self.get_coordinates(old_pos,new_pos)
+
         # if coordinate was invalid return False
+        coordinates = self.translate_coordinates(old_pos,new_pos)
         if not coordinates:
             return False
 
-        piece = self.get_piece(coordinates[0], coordinates[1])
-
-
         # if piece is invalid return false
+        piece = self.get_piece(coordinates[0], coordinates[1])
         if not self.validate_piece(piece):
             return False
 
+        # check if move is at a legal distance and slope
         dist = self.measure_distance(coordinates)
-
         if not dist:
             return False
-        valid = self.legal_move(piece,coordinates, dist)
 
+        # check if piece has the necessary stones to move
+        valid = self.legal_move(piece,coordinates, dist)
         if not valid:
             return False
+
+        # returns a single x/y coordinate
+        next_pos = self.get_next_pos(coordinates)
+
+        # get coordinates for next piece and the next one
+        old_coord = self.get_coordinates(coordinates[0],coordinates[1])
+        next_coord = self.get_coordinates(next_pos[0],next_pos[1])
+
+        # get a list of the new coordinates covered by move
+        unique_coords = self.compare_coordinates(old_coord, next_coord)
+
+        # check if those spaces contain characters
+        new_stones = self.get_stones(unique_coords)
+
+        for move in range(0, dist[0]):
+            if self.contains_stones(new_stones):
+                if coordinates[2] == next_pos[0] and coordinates[3] == next_pos[1]:
+                    print("complete move")
+                    self.move_piece(piece,next_coord)
+                    self.clear_footprint(coordinates)
+                    self.clear_perimeter()
+                else:
+                    print("overlapping footprint")
+                    return False
+            else:
+                if coordinates[2] == next_pos[0] and coordinates[3] == next_pos[1]:
+                    print("complete move")
+                    self.move_piece(piece,next_coord)
+                    self.clear_footprint(coordinates)
+                    self.clear_perimeter()
+                else:
+                    next_pos.extend([coordinates[2],coordinates[3]])
+                    next_pos = self.get_next_pos(next_pos)
+                    old_coord = next_coord
+                    next_coord = self.get_coordinates(next_pos[0],next_pos[1])
+                    unique_coords = self.compare_coordinates(old_coord,next_coord)
+                    new_stones = self.get_stones(unique_coords)
+
+    def clear_perimeter(self):
+        """erases any pieces moved over the edge of the board"""
+        for x in range(0,20):
+            for y in range(0,20):
+                if x == 0 or x == 19 or y == 0 or y == 19:
+                    self._board[y][x] = " "
+
+
+
+    def clear_footprint(self, coordinates):
+        """sets old footprint to blank spaces unless they overlap with new
+        position"""
+        old = self.get_coordinates(coordinates[0],coordinates[1])
+        new = self.get_coordinates(coordinates[2],coordinates[3])
+        unique = self.compare_coordinates(new, old)
+
+        for spot in unique:
+            self._board[spot[1]][spot[0]] = " "
+
+
+    def move_piece(self,piece, coordinates):
+        """moves piece on the board"""
+
+        for x in range(0,9):
+            self._board[coordinates[x][1]][coordinates[x][0]] = piece[x]
+
+
+    @staticmethod
+    def contains_stones(char_list):
+        """receives a list of charcters from the board and determines if they
+        are blank or stones, returns T if blank, F otherwise"""
+        char_count = 0
+        for char in char_list:
+            if char != " ":
+                char_count += 1
+
+        if char_count > 0:
+            return True
+        else:
+            return False
+
+
+
+
+    def get_stones(self,coordinates):
+        """receives a list of coordinates and returns a list of the stones at
+         those coordinates"""
+        stones = []
+        for spot in coordinates:
+            stones.append(self._board[spot[1]][spot[0]])
+        return stones
+
+
+    @staticmethod
+    def compare_coordinates(coord1, coord2):
+        """ compare 2 pieces' coordinates and remove any coordinates that
+        overlap"""
+        new_coords = []
+        for x in coord2:
+            if x not in coord1:
+                new_coords.append(x)
+
+        return new_coords
+
+
+    @staticmethod
+    def get_coordinates(x, y):
+        """gets the coordinates for the piece  surrounding the x/y coordinate
+        provided"""
+
+        piece_coordinates = [[x - 1, y - 1], [x, y - 1], [x + 1, y - 1],
+                             [x - 1, y], [x, y], [x + 1, y], [x - 1, y + 1],
+                             [x, y + 1], [x + 1, y + 1]]
+
+        return piece_coordinates
+
+    @staticmethod
+    def get_next_pos(coordinates):
+        """receives the x/y coordinates as a list and calculates the next
+        space for the piece to move to in a line"""
+        next_pos = []
+        x1 = coordinates[0]
+        x2 = coordinates[2]
+        y1 = coordinates[1]
+        y2 = coordinates[3]
+
+        # NW move
+        if x2 < x1 and y2 < y1:
+            next_pos.append(x1-1)
+            next_pos.append(y1-1)
+
+        # N move
+        if x2 == x1 and y2 < y1:
+            next_pos.append(x1)
+            next_pos.append(y1 - 1)
+
+        # NE move
+        if x2 > x1 and y2 < y1:
+            next_pos.append(x1 + 1)
+            next_pos.append(y1 - 1)
+
+        # W move
+        if x2 < x1 and y1 == y2:
+            next_pos.append(x1 - 1)
+            next_pos.append(y1)
+
+        # E move
+        if x2 > x1 and y1 == y2:
+            next_pos.append(x1 + 1)
+            next_pos.append(y1)
+
+        # SW move
+        if x2 < x1 and y2 > y1:
+            next_pos.append(x1 - 1)
+            next_pos.append(y1 + 1)
+
+        # S move
+        if x2 == x1 and y2 > y1:
+            next_pos.append(x1)
+            next_pos.append(y1 + 1)
+
+        # SE move
+        if x2 > x1 and y2 > y1:
+            next_pos.append(x1 + 1)
+            next_pos.append(y1 + 1)
+
+        return next_pos
+
 
     @staticmethod
     def measure_distance(coordinates):
@@ -170,42 +338,42 @@ class Gess:
 
         # illegal NW move
         if piece[0] == " " and x2 < x1 and y2 < y1:
-            print("no NW token")
+            print("no NW stone")
             return False
 
         # illegal N move
         if piece[1] == " " and x2 == x1 and y2 < y1:
-            print("no N token")
+            print("no N stone")
             return False
 
         # illegal NE move
         if piece[2] == " " and x2 > x1 and y2 < y1:
-            print("no NE token")
+            print("no NE stone")
             return False
 
         # illegal W move
         if piece[3] == " " and x2 < x1 and y1 == y2:
-            print("no W token")
+            print("no W stone")
             return False
 
         # illegal E move
         if piece[5] == " " and x2 > x1 and y1 == y2:
-            print("no E token")
+            print("no E stone")
             return False
 
         # illegal SW move
         if piece[6] == " " and x2 < x1 and y2 > y1:
-            print("no SE token")
+            print("no SE stone")
             return False
 
         # illegal S move
         if piece[7] == " " and x2 == x1 and y2 > y1:
-            print("no S token")
+            print("no S stone")
             return False
 
         # illegal SE move
         if piece[8] == " " and x2 > x1 and y2 > y1:
-            print("no SE token")
+            print("no SE stone")
             return False
 
 
@@ -219,7 +387,7 @@ class Gess:
         # if slope is 1, determine direction based off of x/y differences
         return True
 
-    def get_coordinates(self, old, new):
+    def translate_coordinates(self, old, new):
         """takes 2 input strings as coordinates and converts them to list
         indices for the board, returns a list of integers as x and y
         coordinates;
@@ -298,6 +466,10 @@ class Gess:
 
 
 g = Gess()
+g.make_move("j3","h3")
+g.display()
+
+
 
 
 
