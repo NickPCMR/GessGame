@@ -4,7 +4,7 @@
 
 import math
 
-class Gess:
+class GessGame:
     def __init__(self):
         """" initializes game: sets status, whose turn it is, and starting
         positions"""
